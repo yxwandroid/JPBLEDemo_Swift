@@ -27,7 +27,7 @@ class ViewController: UIViewController {
     var sendString : NSString!
 
     //需要连接的 CBCharacteristic 的 UUID
-    let ServiceUUID1 =  "FFE0"
+    let ServiceUUID1 =  "19B10010-E8F2-537E-4F6C-D104768A1214"
     
     
     override func viewDidLoad() {
@@ -106,7 +106,12 @@ extension ViewController :UITableViewDelegate,UITableViewDataSource{
             cell = UITableViewCell.init(style: UITableViewCellStyle.default, reuseIdentifier: "cellId")
         }
         let peripheral = discoveredPeripheralsArr[indexPath.row]
-        cell?.textLabel?.text = String.init(format: "设备名称 ：%@", (peripheral?.name)!)
+        var  blueName=peripheral?.name
+        if(blueName==nil){
+            blueName="12"
+        }
+        print("名称: "+blueName!)
+        cell?.textLabel?.text = String.init(format: "设备名称 ：%@", (blueName)!)
         return cell!
     }
     
@@ -174,9 +179,9 @@ extension ViewController :CBCentralManagerDelegate,CBPeripheralDelegate{
         manager .stopScan()
         
         let alertController = UIAlertController.init(title: "已连接上 \(peripheral.name)", message: nil, preferredStyle: .alert)
-        self.present(alertController, animated: true) { 
+        self.present(alertController, animated: true) {
         
-            alertController.dismiss(animated: false, completion: { 
+            alertController.dismiss(animated: false, completion: {
                 //连接上后跳转
                 let inputController = InputValueController.init()
                 self.present(inputController, animated: true) {
