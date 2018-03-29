@@ -1,6 +1,0 @@
-version: "Apple Swift version 4.0.3 (swiftlang-900.0.74.1 clang-900.0.39.2)"
-options: "66e8f08df81310e23a4484020eb5d5eb"
-build_time: [1521438491, 528548000]
-inputs:
-  "/Users/yangxuewu/Desktop/JPBLEDemo_Swift/JPBLEDemo_Swift/ViewController.swift": [1521438466, 0]
-  "/Users/yangxuewu/Desktop/JPBLEDemo_Swift/JPBLEDemo_Swift/AppDelegate.swift": [1521438466, 0]
