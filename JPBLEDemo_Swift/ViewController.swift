@@ -12,7 +12,19 @@ import CoreBluetooth
 
 
 class ViewController: UIViewController {
-
+    //    - (IBAction)sendMsg:(id)sender {
+    //    NSString *str = @"22";
+    //    NSData *data = [str dataUsingEncoding:NSUTF8StringEncoding];
+    //    [self writeCharacteristic:_peripheral characteristic:_characteristic value:data];
+    //
+    //    }
+    @IBAction func sendStr(_ sender: Any) {
+        print("send ")
+       
+        let data = "hello".data(using: .ascii)
+        self.viewController(self.connectedPeripheral , didWriteValueFor :self.savedCharacteristic, value: data!)
+        
+    }
     //系统蓝牙管理对象
     var manager : CBCentralManager!
     var discoveredPeripheralsArr :[CBPeripheral?] = []
@@ -22,8 +34,9 @@ class ViewController: UIViewController {
     var connectedPeripheral : CBPeripheral!
     //保存的设备特性
     var savedCharacteristic : CBCharacteristic!
-    
-    var lastString : NSString!
+    //更新的服务特性
+    var characteristicNotifying  : CBCharacteristic!
+   // var lastString : NSString!
     var sendString : NSString!
 
     //需要连接的 CBCharacteristic 的 UUID
@@ -108,7 +121,7 @@ extension ViewController :UITableViewDelegate,UITableViewDataSource{
         let peripheral = discoveredPeripheralsArr[indexPath.row]
         var  blueName=peripheral?.name
         if(blueName==nil){
-            blueName="12"
+            blueName="未知"
         }
         print("名称: "+blueName!)
         cell?.textLabel?.text = String.init(format: "设备名称 ：%@", (blueName)!)
@@ -136,7 +149,9 @@ extension ViewController :CBCentralManagerDelegate,CBPeripheralDelegate{
         case .poweredOff:
             print("CBCentralManagerStatePoweredOff")
         case .poweredOn:
+             startScan()
             print("CBCentralManagerStatePoweredOn")
+           
 
         }
         
@@ -165,6 +180,11 @@ extension ViewController :CBCentralManagerDelegate,CBPeripheralDelegate{
         
         tableView.reloadData()
         
+        if peripheral.name == "LeedianTech_TEST" {
+            print("-----------peripheral.name-----------"+peripheral.name!)
+            manager.connect(peripheral, options:nil)
+              //manager.connect(selectedPeripheral!, options: nil)
+        }
     }
 
     
@@ -173,26 +193,25 @@ extension ViewController :CBCentralManagerDelegate,CBPeripheralDelegate{
         connectedPeripheral = peripheral
         //外设寻找service
         peripheral .discoverServices(nil)
-        
         peripheral.delegate = self
         self.title = peripheral.name
         manager .stopScan()
         
-        let alertController = UIAlertController.init(title: "已连接上 \(peripheral.name)", message: nil, preferredStyle: .alert)
-        self.present(alertController, animated: true) {
-        
-            alertController.dismiss(animated: false, completion: {
-                //连接上后跳转
-                let inputController = InputValueController.init()
-                self.present(inputController, animated: true) {
-                }
-                inputController.imputValueBlock = { (sendStr ) -> () in
-                    self.sendString = sendStr as NSString!
-                    let data = sendStr?.data(using: .utf8)
-                    self.viewController(self.connectedPeripheral , didWriteValueFor :self.savedCharacteristic, value: data!)
-                }
-            })
-        }
+//        let alertController = UIAlertController.init(title: "已连接上 \(peripheral.name)", message: nil, preferredStyle: .alert)
+//        self.present(alertController, animated: true) {
+//
+//            alertController.dismiss(animated: false, completion: {
+//                //连接上后跳转
+//                let inputController = InputValueController.init()
+//                self.present(inputController, animated: true) {
+//                }
+//                inputController.imputValueBlock = { (sendStr ) -> () in
+//                    self.sendString = sendStr as NSString!
+//                    let data = sendStr?.data(using: .utf8)
+//                    self.viewController(self.connectedPeripheral , didWriteValueFor :self.savedCharacteristic, value: data!)
+//                }
+//            })
+//        }
     }
     
     //连接到Peripherals-失败
@@ -222,7 +241,6 @@ extension ViewController :CBCentralManagerDelegate,CBPeripheralDelegate{
         for service in peripheral.services! {
             //需要连接的 CBCharacteristic 的 UUID
             if service.uuid.uuidString == ServiceUUID1{
-                
                 peripheral.discoverCharacteristics(nil, for: service)
             }
         }
@@ -240,12 +258,20 @@ extension ViewController :CBCentralManagerDelegate,CBPeripheralDelegate{
 
         
         for characteristic in service.characteristics! {
-            peripheral .readValue(for: characteristic)
-            
-            
-            //设置 characteristic 的 notifying 属性 为 true ， 表示接受广播
-            
-            peripheral.setNotifyValue(true, for: characteristic)
+//            peripheral .readValue(for: characteristic)
+//            //设置 characteristic 的 notifying 属性 为 true ， 表示接受广播
+//            peripheral.setNotifyValue(true, for: characteristic)
+    
+            if characteristic.uuid.uuidString == "19B10011-E8F2-537E-4F6C-D104768A1214" {
+                 print("--------readwrite-------- ",characteristic.uuid);
+                 peripheral.readValue(for: characteristic)
+                 peripheral.setNotifyValue(true, for: characteristic)
+                 //  [peripheral setNotifyValue:YES forCharacteristic:characteristic];
+            }else if  characteristic.uuid.uuidString == "19B10012-E8F2-537E-4F6C-D104768A1214" {
+                  print("--------Notify------",characteristic.uuid);
+               
+            }
+             peripheral.setNotifyValue(true, for: characteristic)
         }
     }
     
@@ -254,16 +280,25 @@ extension ViewController :CBCentralManagerDelegate,CBPeripheralDelegate{
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?){
         
-        let resultStr = NSString(data: characteristic.value!, encoding: String.Encoding.utf8.rawValue)
         
-        print("characteristic uuid:\(characteristic.uuid)   value:\(resultStr)")
-        
-        if lastString == resultStr{
-            return;
+        if characteristic.uuid.uuidString == "19B10011-E8F2-537E-4F6C-D104768A1214" {
+            print("--------readwrite-------- ",characteristic.uuid);
+              self.savedCharacteristic = characteristic
+        }else if  characteristic.uuid.uuidString == "19B10012-E8F2-537E-4F6C-D104768A1214" {
+            print("--------Notify------",characteristic.uuid);
+              self.characteristicNotifying = characteristic
         }
-        
         // 操作的characteristic 保存
-        self.savedCharacteristic = characteristic
+      
+        let resultStr = NSString(data: characteristic.value!, encoding: String.Encoding.ascii.rawValue)
+        print("--------characteristic uuid:\(characteristic.uuid)   value:\(resultStr)--------")
+        
+        
+        
+        
+//        if lastString == resultStr{
+//            return;
+//        }
     }
     
     
@@ -277,8 +312,10 @@ extension ViewController :CBCentralManagerDelegate,CBPeripheralDelegate{
         let cancelAction = UIAlertAction.init(title: "好的", style: .cancel, handler: nil)
         alertView.addAction(cancelAction)
         alertView.show(self, sender: nil)
-        lastString = NSString(data: characteristic.value!, encoding: String.Encoding.utf8.rawValue)
+      //  lastString = NSString(data: characteristic.value!, encoding: String.Encoding.utf8.rawValue)
 
     }
+
+    
 
 }
